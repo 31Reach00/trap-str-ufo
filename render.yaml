@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: trap-str-ufo
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BOT_TOKEN
+        sync: false
+      - key: ADMIN_USERNAME
+        value: Barter31Babee
+      - key: ADMIN_CHAT_ID
+        sync: false
+      - key: PORT
+        value: 3000
+      - key: IMAGES_PATH
+        value: src/data/images

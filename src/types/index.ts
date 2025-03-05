@@ -9,6 +9,7 @@ export interface MenuItem {
   name: string;
   description?: string;
   imageUrl: string;
+  videoUrl?: string;  // Optional video URL
   quantities: Quantity[];
   isAvailable: boolean;
   category?: string;

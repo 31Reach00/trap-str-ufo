@@ -3,20 +3,21 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
-// Image handling
-export const saveImage = async (
-  imageBuffer: Buffer,
-  originalName: string
+// Media handling
+export const saveMedia = async (
+  buffer: Buffer,
+  originalName: string,
+  type: 'image' | 'video'
 ): Promise<string> => {
   const ext = path.extname(originalName);
   const fileName = `${uuidv4()}${ext}`;
   const filePath = path.join(process.env.IMAGES_PATH || 'src/data/images', fileName);
   
-  await fs.promises.writeFile(filePath, imageBuffer);
+  await fs.promises.writeFile(filePath, buffer);
   return fileName;
 };
 
-export const deleteImage = async (fileName: string): Promise<void> => {
+export const deleteMedia = async (fileName: string): Promise<void> => {
   const filePath = path.join(process.env.IMAGES_PATH || 'src/data/images', fileName);
   if (fs.existsSync(filePath)) {
     await fs.promises.unlink(filePath);
@@ -37,6 +38,7 @@ ${item.description ? `📝 ${item.description}\n` : ''}
 ${quantities}
 
 ${status}
+${item.videoUrl ? '🎥 Video preview available' : ''}
 `;
 };
 
@@ -100,6 +102,11 @@ export const parseQuantitySelection = (
 // Validation
 export const isValidImageFile = (mimetype: string): boolean => {
   const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+  return validTypes.includes(mimetype);
+};
+
+export const isValidVideoFile = (mimetype: string): boolean => {
+  const validTypes = ['video/mp4', 'video/quicktime'];
   return validTypes.includes(mimetype);
 };
 

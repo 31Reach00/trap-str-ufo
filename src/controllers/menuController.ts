@@ -3,17 +3,19 @@ import { Message } from 'telegraf/types';
 import { v4 as uuidv4 } from 'uuid';
 import { store } from '../utils/store';
 import { MenuItem, Quantity } from '../types';
-import { saveImage, deleteImage, formatMenuItem, createQuantityKeyboard } from '../utils/helpers';
+import { saveMedia, deleteMedia, formatMenuItem, createQuantityKeyboard, isValidImageFile, isValidVideoFile } from '../utils/helpers';
 
 export class MenuController {
   // Add new menu item
   static async addMenuItem(ctx: Context) {
     try {
-      const photo = (ctx.message as Message.PhotoMessage).photo;
-      const caption = (ctx.message as Message.PhotoMessage).caption;
+      const message = ctx.message as Message.PhotoMessage;
+      const photo = message.photo;
+      const caption = message.caption;
+      const video = (ctx.message as any).video;  // Check for video
 
-      if (!photo || !caption) {
-        await ctx.reply('❌ Please send a photo with caption in the format:\nName\nDescription\nQuantity1 (price)\nQuantity2 (price)...');
+      if ((!photo && !video) || !caption) {
+        await ctx.reply('❌ Please send a photo or video with caption in the format:\nName\nDescription\nQuantity1 (price)\nQuantity2 (price)...');
         return;
       }
 
@@ -44,27 +46,49 @@ export class MenuController {
         return;
       }
 
-      // Get the largest photo (best quality)
-      const fileId = photo[photo.length - 1].file_id;
-      const file = await ctx.telegram.getFile(fileId);
-      const filePath = file.file_path;
+      let imageUrl = '';
+      let videoUrl = '';
 
-      if (!filePath) {
-        await ctx.reply('❌ Error accessing photo.');
-        return;
+      // Handle photo
+      if (photo) {
+        const fileId = photo[photo.length - 1].file_id;
+        const file = await ctx.telegram.getFile(fileId);
+        const filePath = file.file_path;
+
+        if (!filePath) {
+          await ctx.reply('❌ Error accessing photo.');
+          return;
+        }
+
+        const imageApiUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${filePath}`;
+        const response = await fetch(imageApiUrl);
+        const buffer = Buffer.from(await response.arrayBuffer());
+        imageUrl = await saveMedia(buffer, 'menu-item.jpg', 'image');
       }
 
-      // Download and save image
-      const imageUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${filePath}`;
-      const response = await fetch(imageUrl);
-      const buffer = Buffer.from(await response.arrayBuffer());
-      const fileName = await saveImage(buffer, 'menu-item.jpg');
+      // Handle video
+      if (video) {
+        const fileId = video.file_id;
+        const file = await ctx.telegram.getFile(fileId);
+        const filePath = file.file_path;
+
+        if (!filePath) {
+          await ctx.reply('❌ Error accessing video.');
+          return;
+        }
+
+        const videoApiUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${filePath}`;
+        const response = await fetch(videoApiUrl);
+        const buffer = Buffer.from(await response.arrayBuffer());
+        videoUrl = await saveMedia(buffer, 'menu-item.mp4', 'video');
+      }
 
       const menuItem: MenuItem = {
         id: uuidv4(),
         name,
         description,
-        imageUrl: fileName,
+        imageUrl,
+        videoUrl,
         quantities,
         isAvailable: true,
         updatedAt: new Date()
@@ -74,6 +98,18 @@ export class MenuController {
 
       await ctx.reply('✅ Menu item added successfully!');
       await ctx.reply(formatMenuItem(menuItem), { parse_mode: 'Markdown' });
+
+      // Send media preview
+      if (imageUrl) {
+        await ctx.replyWithPhoto(
+          { source: `${process.env.IMAGES_PATH}/${imageUrl}` }
+        );
+      }
+      if (videoUrl) {
+        await ctx.replyWithVideo(
+          { source: `${process.env.IMAGES_PATH}/${videoUrl}` }
+        );
+      }
     } catch (error) {
       console.error('Error adding menu item:', error);
       await ctx.reply('❌ Error adding menu item. Please try again.');
@@ -91,17 +127,22 @@ export class MenuController {
 
     for (const item of items) {
       try {
-        // Send photo with formatted caption
-        await ctx.replyWithPhoto(
-          { source: `${process.env.IMAGES_PATH}/${item.imageUrl}` },
-          {
-            caption: formatMenuItem(item),
-            parse_mode: 'Markdown'
-          }
-        );
+        // Send formatted message
+        await ctx.reply(formatMenuItem(item), { parse_mode: 'Markdown' });
+
+        // Send media
+        if (item.imageUrl) {
+          await ctx.replyWithPhoto(
+            { source: `${process.env.IMAGES_PATH}/${item.imageUrl}` }
+          );
+        }
+        if (item.videoUrl) {
+          await ctx.replyWithVideo(
+            { source: `${process.env.IMAGES_PATH}/${item.videoUrl}` }
+          );
+        }
       } catch (error) {
         console.error(`Error sending menu item ${item.id}:`, error);
-        // Send text-only version if image fails
         await ctx.reply(formatMenuItem(item), { parse_mode: 'Markdown' });
       }
     }
@@ -143,7 +184,12 @@ export class MenuController {
     }
 
     try {
-      await deleteImage(item.imageUrl);
+      if (item.imageUrl) {
+        await deleteMedia(item.imageUrl);
+      }
+      if (item.videoUrl) {
+        await deleteMedia(item.videoUrl);
+      }
       store.deleteMenuItem(itemId);
       await ctx.reply(`✅ Deleted: ${item.name}`);
     } catch (error) {
@@ -169,6 +215,7 @@ export class MenuController {
     try {
       const message = ctx.message as Message.PhotoMessage;
       const photo = message.photo;
+      const video = (ctx.message as any).video;
       const caption = message.caption;
 
       if (photo) {
@@ -179,15 +226,35 @@ export class MenuController {
 
         if (filePath) {
           // Delete old image
-          await deleteImage(item.imageUrl);
+          if (item.imageUrl) {
+            await deleteMedia(item.imageUrl);
+          }
 
           // Save new image
           const imageUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${filePath}`;
           const response = await fetch(imageUrl);
           const buffer = Buffer.from(await response.arrayBuffer());
-          const fileName = await saveImage(buffer, 'menu-item.jpg');
+          item.imageUrl = await saveMedia(buffer, 'menu-item.jpg', 'image');
+        }
+      }
 
-          item.imageUrl = fileName;
+      if (video) {
+        // Update video
+        const fileId = video.file_id;
+        const file = await ctx.telegram.getFile(fileId);
+        const filePath = file.file_path;
+
+        if (filePath) {
+          // Delete old video
+          if (item.videoUrl) {
+            await deleteMedia(item.videoUrl);
+          }
+
+          // Save new video
+          const videoUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${filePath}`;
+          const response = await fetch(videoUrl);
+          const buffer = Buffer.from(await response.arrayBuffer());
+          item.videoUrl = await saveMedia(buffer, 'menu-item.mp4', 'video');
         }
       }
 
@@ -219,6 +286,18 @@ export class MenuController {
 
       await ctx.reply('✅ Item updated successfully!');
       await ctx.reply(formatMenuItem(item), { parse_mode: 'Markdown' });
+
+      // Send updated media preview
+      if (item.imageUrl) {
+        await ctx.replyWithPhoto(
+          { source: `${process.env.IMAGES_PATH}/${item.imageUrl}` }
+        );
+      }
+      if (item.videoUrl) {
+        await ctx.replyWithVideo(
+          { source: `${process.env.IMAGES_PATH}/${item.videoUrl}` }
+        );
+      }
     } catch (error) {
       console.error('Error updating menu item:', error);
       await ctx.reply('❌ Error updating item. Please try again.');
