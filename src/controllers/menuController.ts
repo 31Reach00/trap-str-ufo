@@ -4,15 +4,16 @@ import { v4 as uuidv4 } from 'uuid';
 import { store } from '../utils/store';
 import { MenuItem, Quantity } from '../types';
 import { saveMedia, deleteMedia, formatMenuItem, createQuantityKeyboard, isValidImageFile, isValidVideoFile } from '../utils/helpers';
+import fetch from 'node-fetch';
 
 export class MenuController {
   // Add new menu item
   static async addMenuItem(ctx: Context) {
     try {
-      const message = ctx.message as Message.PhotoMessage;
-      const photo = message.photo;
+      const message = ctx.message as Message.PhotoMessage | Message.VideoMessage;
+      const photo = 'photo' in message ? message.photo : undefined;
+      const video = 'video' in message ? message.video : undefined;
       const caption = message.caption;
-      const video = (ctx.message as any).video;  // Check for video
 
       if ((!photo && !video) || !caption) {
         await ctx.reply('❌ Please send a photo or video with caption in the format:\nName\nDescription\nQuantity1 (price)\nQuantity2 (price)...');
@@ -96,7 +97,9 @@ export class MenuController {
 
       store.addMenuItem(menuItem);
 
-      await ctx.reply('✅ Menu item added successfully!');
+      await ctx.reply('✅ Menu item added successfully!\n\n' +
+                     `Item ID: ${menuItem.id}\n` +
+                     'Use this ID to add/update media later.');
       await ctx.reply(formatMenuItem(menuItem), { parse_mode: 'Markdown' });
 
       // Send media preview
@@ -127,8 +130,13 @@ export class MenuController {
 
     for (const item of items) {
       try {
-        // Send formatted message
-        await ctx.reply(formatMenuItem(item), { parse_mode: 'Markdown' });
+        // Send formatted message with ID for admin
+        const isAdmin = ctx.from?.username === process.env.ADMIN_USERNAME;
+        const message = isAdmin 
+          ? `${formatMenuItem(item)}\nItem ID: ${item.id}`
+          : formatMenuItem(item);
+
+        await ctx.reply(message, { parse_mode: 'Markdown' });
 
         // Send media
         if (item.imageUrl) {
@@ -213,9 +221,9 @@ export class MenuController {
     }
 
     try {
-      const message = ctx.message as Message.PhotoMessage;
-      const photo = message.photo;
-      const video = (ctx.message as any).video;
+      const message = ctx.message as Message.PhotoMessage | Message.VideoMessage;
+      const photo = 'photo' in message ? message.photo : undefined;
+      const video = 'video' in message ? message.video : undefined;
       const caption = message.caption;
 
       if (photo) {
@@ -258,7 +266,7 @@ export class MenuController {
         }
       }
 
-      if (caption) {
+      if (caption && !caption.startsWith('ID:')) {
         const lines = caption.split('\n');
         if (lines.length >= 1) item.name = lines[0];
         if (lines.length >= 2) item.description = lines[1];

@@ -1,0 +1,14 @@
+{
+  "name": "trap-str-ufo-bot",
+  "version": "1.0.0",
+  "description": "TrapStr UFO Telegram Bot - Simple Version",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "dependencies": {
+    "telegraf": "3.17.3",
+    "dotenv": "8.2.0",
+    "node-fetch": "2.6.1"
+  }
+}

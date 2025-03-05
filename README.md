@@ -4,7 +4,7 @@ A Telegram bot for managing a digital menu system with secure order processing.
 
 ## Features
 
-- 📸 Upload and manage menu items with photos
+- 📸 Upload and manage menu items with photos or videos
 - 💰 Multiple quantity options with pricing
 - 🛒 Shopping cart functionality
 - 🔔 Real-time order notifications
@@ -55,7 +55,18 @@ npm run build
 npm start
 ```
 
-## Deployment to Glitch
+## Deployment
+
+### Deploy to Render.com
+
+1. Fork or clone this repository to your GitHub account
+2. Create a new Web Service on [Render](https://render.com)
+3. Connect your GitHub repository
+4. Render will automatically detect the configuration from `render.yaml`
+5. Add your environment variables in the Render dashboard
+6. Deploy the service
+
+### Deploy to Glitch
 
 1. Create a new project on [Glitch](https://glitch.com)
 2. Import this repository
@@ -79,7 +90,7 @@ npm start
 
 ### Adding Menu Items (Admin)
 1. Use `/additem` command
-2. Send a photo with caption in the format:
+2. Send either a photo OR video with caption in the format:
 ```
 Name
 Description
@@ -100,7 +111,7 @@ Top shelf indoor
 ```
 
 ### Updating Items (Admin)
-Send a photo with caption starting with `ID:[itemId]` followed by the new details in the same format as adding items.
+Send a photo or video with caption starting with `ID:[itemId]` followed by new details (optional). You'll see the item ID in the confirmation message after adding an item, or by using the `/menu` command as an admin.
 
 ## Development
 
@@ -117,7 +128,7 @@ src/
 ├── types/          # TypeScript type definitions
 ├── utils/          # Helper functions
 └── data/
-    └── images/     # Uploaded menu item images
+    └── images/     # Uploaded menu item photos and videos
 ```
 
 ## Security Features
