@@ -4,7 +4,7 @@ services:
     env: node
     region: ohio
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install && mkdir -p /data/images
     startCommand: npm start
     envVars:
       - key: NODE_ENV
