@@ -4,7 +4,10 @@ services:
     env: node
     region: ohio
     plan: free
-    buildCommand: npm install && mkdir -p /data/images
+    buildCommand: |
+      npm install
+      npm run build
+      mkdir -p /data/images
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -23,5 +26,5 @@ services:
       name: data
       mountPath: /data
       sizeGB: 1
-    healthCheckPath: /
+    healthCheckPath: /health
     autoDeploy: true

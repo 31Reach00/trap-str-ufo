@@ -1,5 +1,6 @@
 import { Telegraf, Markup } from 'telegraf';
 import * as dotenv from 'dotenv';
+import express, { Request, Response } from 'express';
 import { MenuController } from './controllers/menuController';
 import { OrderController } from './controllers/orderController';
 import { isAdmin, isValidUser, handleError, rateLimit } from './middleware/auth';
@@ -12,6 +13,14 @@ dotenv.config();
 if (!process.env.BOT_TOKEN) {
   throw new Error('BOT_TOKEN must be provided in environment variables');
 }
+
+// Initialize express app for health checks
+const app = express();
+const port = process.env.PORT || 3000;
+
+app.get('/health', (req: Request, res: Response) => {
+  res.status(200).json({ status: 'ok' });
+});
 
 // Initialize bot
 const bot = new Telegraf(process.env.BOT_TOKEN);
@@ -28,7 +37,7 @@ bot.command('start', isValidUser, OrderController.startOrder);
 // Admin commands
 bot.command('additem', isAdmin, (ctx) => {
   ctx.reply(
-    '📸 Send a photo OR video with caption in the format:\n\n' +
+    '📸 Send a photo or video with caption in the format:\n\n' +
     'Name\n' +
     'Description\n' +
     'Quantity1 (price)\n' +
@@ -42,10 +51,9 @@ bot.command('additem', isAdmin, (ctx) => {
     '1/2 (80)\n' +
     '⚡️ (145)\n\n' +
     '💡 Tips:\n' +
-    '• You only need EITHER a photo OR a video to add an item\n' +
-    '• After adding an item, you\'ll see its ID in the confirmation message\n' +
-    '• To add/update media later, send photo/video with "ID:[item-id]" in caption\n' +
-    '• Use /menu to see all item IDs (visible only to admin)\n' +
+    '• You can start with either photo or video\n' +
+    '• To add both, send second media with "ID:[item-id]" in caption\n' +
+    '• Use /menu to see item IDs\n' +
     '• Videos should be short previews (under 50MB)'
   );
 });
@@ -192,22 +200,29 @@ Admin Commands:
 /delivered [orderId] - Mark order as delivered
 
 Media Management:
-• Send EITHER a photo OR video with caption to add new item
-• You only need one media type (photo OR video) for each item
-• After adding an item, you'll see its ID in the confirmation message
-• To add/update media later, send photo/video with "ID:[itemId]" in caption
-• Use /menu to see all item IDs (visible only to admin)
+• Send photo or video with caption to add new item
+• Use /menu to see item IDs
+• Send media with "ID:[itemId]" to update an item
+• You can have both photo and video for each item
 `;
   }
 
   await ctx.reply(helpMessage, { parse_mode: 'Markdown' });
 });
 
-// Launch bot
-bot.launch().then(() => {
+// Launch bot and start server
+Promise.all([
+  bot.launch(),
+  new Promise<void>((resolve) => {
+    app.listen(port, () => {
+      console.log(`Health check server is running on port ${port}`);
+      resolve();
+    });
+  }),
+]).then(() => {
   console.log('🚀 TrapStr UFO Bot is running');
 }).catch((error) => {
-  console.error('Error starting bot:', error);
+  console.error('Error starting services:', error);
   process.exit(1);
 });
 
