@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TrapStr UFO Bot</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+      background-color: #f4f4f4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 800px;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    h1 {
+      color: #4a6fa5;
+      margin-bottom: 20px;
+    }
+    .logo {
+      font-size: 72px;
+      margin-bottom: 20px;
+    }
+    .button {
+      display: inline-block;
+      background: #4a6fa5;
+      color: white;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 5px;
+      margin-top: 20px;
+      transition: background 0.3s;
+    }
+    .button:hover {
+      background: #3a5a8a;
+    }
+    .status {
+      margin-top: 30px;
+      padding: 15px;
+      background: #e8f5e9;
+      border-radius: 5px;
+      font-weight: bold;
+      color: #2e7d32;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">🛸</div>
+    <h1>TrapStr UFO Bot</h1>
+    <p>Welcome to the TrapStr UFO Bot service page. This is the hosting page for our Telegram bot.</p>
+    <p>The bot is currently running and ready to take orders!</p>
+    
+    <a href="https://t.me/your_bot_username" class="button">Open Bot in Telegram</a>
+    
+    <div class="status">
+      Service Status: Online
+    </div>
+  </div>
+
+  <script>
+    // Check the health endpoint
+    fetch('/health')
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'ok') {
+          document.querySelector('.status').textContent = 'Service Status: Online';
+          document.querySelector('.status').style.background = '#e8f5e9';
+          document.querySelector('.status').style.color = '#2e7d32';
+        } else {
+          document.querySelector('.status').textContent = 'Service Status: Offline';
+          document.querySelector('.status').style.background = '#ffebee';
+          document.querySelector('.status').style.color = '#c62828';
+        }
+      })
+      .catch(() => {
+        document.querySelector('.status').textContent = 'Service Status: Offline';
+        document.querySelector('.status').style.background = '#ffebee';
+        document.querySelector('.status').style.color = '#c62828';
+      });
+  </script>
+</body>
+</html>

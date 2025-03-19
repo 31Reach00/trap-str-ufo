@@ -1,17 +1,17 @@
-import { MenuItem, Order, CartSession, Customer } from '../types';
+import { MenuItem, Order, CartSession, Customer } from "../types";
+import * as firebase from "./firebase";
+
+// In-memory cache for frequently accessed data
+const menuItemsCache = new Map<string, MenuItem>();
+const ordersCache = new Map<string, Order>();
+const cartsCache = new Map<number, CartSession>();
+const customersCache = new Map<number, Customer>();
 
 class Store {
   private static instance: Store;
-  private menuItems: Map<string, MenuItem>;
-  private orders: Map<string, Order>;
-  private carts: Map<number, CartSession>;
-  private customers: Map<number, Customer>;
 
   private constructor() {
-    this.menuItems = new Map();
-    this.orders = new Map();
-    this.carts = new Map();
-    this.customers = new Map();
+    // Initialize cache
   }
 
   public static getInstance(): Store {
@@ -22,58 +22,101 @@ class Store {
   }
 
   // Menu Items Operations
-  public addMenuItem(item: MenuItem): void {
-    this.menuItems.set(item.id, item);
+  public async addMenuItem(item: MenuItem): Promise<void> {
+    await firebase.addMenuItem(item);
+    menuItemsCache.set(item.id, item);
   }
 
-  public getMenuItem(id: string): MenuItem | undefined {
-    return this.menuItems.get(id);
-  }
+  public async getMenuItem(id: string): Promise<MenuItem | undefined> {
+    // Check cache first
+    if (menuItemsCache.has(id)) {
+      return menuItemsCache.get(id);
+    }
 
-  public getAllMenuItems(): MenuItem[] {
-    return Array.from(this.menuItems.values());
-  }
-
-  public updateMenuItem(id: string, updates: Partial<MenuItem>): void {
-    const item = this.menuItems.get(id);
+    // Fetch from Firebase
+    const item = await firebase.getMenuItem(id);
     if (item) {
-      this.menuItems.set(id, { ...item, ...updates, updatedAt: new Date() });
+      menuItemsCache.set(id, item);
+    }
+    return item;
+  }
+
+  public async getAllMenuItems(): Promise<MenuItem[]> {
+    const items = await firebase.getAllMenuItems();
+
+    // Update cache
+    items.forEach((item) => {
+      menuItemsCache.set(item.id, item);
+    });
+
+    return items;
+  }
+
+  public async updateMenuItem(id: string, updates: Partial<MenuItem>): Promise<void> {
+    await firebase.updateMenuItem(id, updates);
+
+    // Update cache if item exists in cache
+    if (menuItemsCache.has(id)) {
+      const item = menuItemsCache.get(id)!;
+      menuItemsCache.set(id, { ...item, ...updates, updatedAt: new Date() });
     }
   }
 
-  public deleteMenuItem(id: string): void {
-    this.menuItems.delete(id);
+  public async deleteMenuItem(id: string): Promise<void> {
+    await firebase.deleteMenuItem(id);
+    menuItemsCache.delete(id);
   }
 
-  public toggleItemAvailability(id: string): boolean {
-    const item = this.menuItems.get(id);
-    if (item) {
-      item.isAvailable = !item.isAvailable;
-      this.menuItems.set(id, { ...item, updatedAt: new Date() });
-      return item.isAvailable;
+  public async toggleItemAvailability(id: string): Promise<boolean> {
+    const isAvailable = await firebase.toggleItemAvailability(id);
+
+    // Update cache if item exists in cache
+    if (menuItemsCache.has(id)) {
+      const item = menuItemsCache.get(id)!;
+      menuItemsCache.set(id, { ...item, isAvailable, updatedAt: new Date() });
     }
-    return false;
+
+    return isAvailable;
   }
 
   // Orders Operations
-  public addOrder(order: Order): void {
-    this.orders.set(order.id, order);
+  public async addOrder(order: Order): Promise<void> {
+    await firebase.addOrder(order);
+    ordersCache.set(order.id, order);
   }
 
-  public getOrder(id: string): Order | undefined {
-    return this.orders.get(id);
-  }
+  public async getOrder(id: string): Promise<Order | undefined> {
+    // Check cache first
+    if (ordersCache.has(id)) {
+      return ordersCache.get(id);
+    }
 
-  public getOrdersByCustomer(chatId: number): Order[] {
-    return Array.from(this.orders.values()).filter(
-      (order) => order.chatId === chatId
-    );
-  }
-
-  public updateOrderStatus(id: string, status: Order['status']): void {
-    const order = this.orders.get(id);
+    // Fetch from Firebase
+    const order = await firebase.getOrder(id);
     if (order) {
-      this.orders.set(id, {
+      ordersCache.set(id, order);
+    }
+    return order;
+  }
+
+  public async getOrdersByCustomer(chatId: number): Promise<Order[]> {
+    const orders = await firebase.getOrdersByCustomer(chatId);
+
+    // Update cache
+    orders.forEach((order) => {
+      ordersCache.set(order.id, order);
+    });
+
+    return orders;
+  }
+
+  public async updateOrderStatus(id: string, status: Order["status"]): Promise<void> {
+    await firebase.updateOrderStatus(id, status);
+
+    // Update cache if order exists in cache
+    if (ordersCache.has(id)) {
+      const order = ordersCache.get(id)!;
+      ordersCache.set(id, {
         ...order,
         status,
         updatedAt: new Date(),
@@ -81,36 +124,63 @@ class Store {
     }
   }
 
-  public clearOrders(): void {
-    this.orders.clear();
+  public async clearOrders(): Promise<void> {
+    await firebase.clearOrders();
+    ordersCache.clear();
   }
 
   // Cart Operations
-  public getCart(chatId: number): CartSession | undefined {
-    return this.carts.get(chatId);
+  public async getCart(chatId: number): Promise<CartSession | undefined> {
+    // Check cache first
+    if (cartsCache.has(chatId)) {
+      return cartsCache.get(chatId);
+    }
+
+    // Fetch from Firebase
+    const cart = await firebase.getCart(chatId);
+    if (cart) {
+      cartsCache.set(chatId, cart);
+    }
+    return cart;
   }
 
-  public updateCart(chatId: number, cart: CartSession): void {
-    this.carts.set(chatId, { ...cart, lastUpdated: new Date() });
+  public async updateCart(chatId: number, cart: CartSession): Promise<void> {
+    await firebase.updateCart(chatId, cart);
+    cartsCache.set(chatId, { ...cart, lastUpdated: new Date() });
   }
 
-  public clearCart(chatId: number): void {
-    this.carts.delete(chatId);
+  public async clearCart(chatId: number): Promise<void> {
+    await firebase.clearCart(chatId);
+    cartsCache.delete(chatId);
   }
 
   // Customer Operations
-  public addCustomer(customer: Customer): void {
-    this.customers.set(customer.chatId, customer);
+  public async addCustomer(customer: Customer): Promise<void> {
+    await firebase.addCustomer(customer);
+    customersCache.set(customer.chatId, customer);
   }
 
-  public getCustomer(chatId: number): Customer | undefined {
-    return this.customers.get(chatId);
-  }
+  public async getCustomer(chatId: number): Promise<Customer | undefined> {
+    // Check cache first
+    if (customersCache.has(chatId)) {
+      return customersCache.get(chatId);
+    }
 
-  public updateCustomer(chatId: number, updates: Partial<Customer>): void {
-    const customer = this.customers.get(chatId);
+    // Fetch from Firebase
+    const customer = await firebase.getCustomer(chatId);
     if (customer) {
-      this.customers.set(chatId, { ...customer, ...updates });
+      customersCache.set(chatId, customer);
+    }
+    return customer;
+  }
+
+  public async updateCustomer(chatId: number, updates: Partial<Customer>): Promise<void> {
+    await firebase.updateCustomer(chatId, updates);
+
+    // Update cache if customer exists in cache
+    if (customersCache.has(chatId)) {
+      const customer = customersCache.get(chatId)!;
+      customersCache.set(chatId, { ...customer, ...updates });
     }
   }
 }

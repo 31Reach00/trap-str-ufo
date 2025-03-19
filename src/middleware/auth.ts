@@ -1,11 +1,11 @@
-import { Context } from 'telegraf';
+import { Context } from "telegraf";
 
 export const isAdmin = async (ctx: Context, next: () => Promise<void>) => {
   const username = ctx.from?.username;
   const adminUsername = process.env.ADMIN_USERNAME;
 
   if (!username || username !== adminUsername) {
-    await ctx.reply('⛔️ Sorry, this command is only available to administrators.');
+    await ctx.reply("⛔️ Sorry, this command is only available to administrators.");
     return;
   }
 
@@ -14,12 +14,12 @@ export const isAdmin = async (ctx: Context, next: () => Promise<void>) => {
 
 export const isValidUser = async (ctx: Context, next: () => Promise<void>) => {
   if (!ctx.from) {
-    await ctx.reply('⚠️ Could not identify user.');
+    await ctx.reply("⚠️ Could not identify user.");
     return;
   }
 
   if (!ctx.from.username) {
-    await ctx.reply('⚠️ You need to set up a Telegram username to use this bot.');
+    await ctx.reply("⚠️ You need to set up a Telegram username to use this bot.");
     return;
   }
 
@@ -27,14 +27,14 @@ export const isValidUser = async (ctx: Context, next: () => Promise<void>) => {
 };
 
 export const handleError = async (error: any, ctx: Context) => {
-  console.error('Bot error:', error);
+  console.error("Bot error:", error);
 
-  const errorMessage = error.description || error.message || 'An unexpected error occurred';
-  
+  const errorMessage = error.description || error.message || "An unexpected error occurred";
+
   try {
     await ctx.reply(`❌ Error: ${errorMessage}\nPlease try again or contact support.`);
   } catch (e) {
-    console.error('Error sending error message:', e);
+    console.error("Error sending error message:", e);
   }
 };
 
@@ -62,7 +62,7 @@ export const rateLimit = async (ctx: Context, next: () => Promise<void>) => {
 
   // Check if limit exceeded
   if (userRate.count > limit) {
-    await ctx.reply('⚠️ Please slow down. Try again in a minute.');
+    await ctx.reply("⚠️ Please slow down. Try again in a minute.");
     return;
   }
 

@@ -6,7 +6,6 @@ services:
     plan: free
     buildCommand: |
       npm install
-      npm run build
       mkdir -p /data/images
     startCommand: npm start
     envVars:
@@ -18,10 +17,12 @@ services:
         value: Barter31Babee
       - key: ADMIN_CHAT_ID
         value: "5666579908"
-      - key: PORT
+      - key: SERVER_PORT
         value: "3000"
       - key: IMAGES_PATH
         value: /data/images
+      - key: WEBHOOK_URL
+        value: https://trap-str-ufo-2.onrender.com/webhook
     disk:
       name: data
       mountPath: /data

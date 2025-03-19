@@ -1,0 +1,46 @@
+name: Deploy to Firebase
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install firebase-functions telegraf node-fetch dotenv
+
+      - name: Create .env file
+        run: |
+          echo "BOT_TOKEN=8027055639:AAElTX4rQUFkBEJYz80AAn5K7iFddExw4Nk" > .env
+          echo "ADMIN_USERNAME=Barter31Babee" >> .env
+          echo "ADMIN_CHAT_ID=5666579908" >> .env
+          echo "SERVER_PORT=3000" >> .env
+          echo "NODE_ENV=production" >> .env
+          echo "PROJECT_ID=trpstar-ufo" >> .env
+
+      - name: Deploy Firebase Functions
+        uses: w9jds/firebase-action@master
+        with:
+          args: deploy --only functions
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          PROJECT_ID: trpstar-ufo
+
+      - name: Set Telegram Webhook
+        run: |
+          curl -X POST https://api.telegram.org/bot8027055639:AAElTX4rQUFkBEJYz80AAn5K7iFddExw4Nk/setWebhook \
+          -H "Content-Type: application/json" \
+          -d '{"url": "https://us-central1-trpstar-ufo.cloudfunctions.net/bot"}'

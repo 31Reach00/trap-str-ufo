@@ -1,44 +1,33 @@
-import { OrderItem, MenuItem, Quantity } from '../types';
-import * as fs from 'fs';
-import * as path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { OrderItem, MenuItem, Quantity } from "../types";
+import { v4 as uuidv4 } from "uuid";
+import * as firebase from "./firebase";
 
 // Media handling
-export const saveMedia = async (
-  buffer: Buffer,
-  originalName: string,
-  type: 'image' | 'video'
-): Promise<string> => {
-  const ext = path.extname(originalName);
-  const fileName = `${uuidv4()}${ext}`;
-  const filePath = path.join(process.env.IMAGES_PATH || 'src/data/images', fileName);
-  
-  await fs.promises.writeFile(filePath, buffer);
-  return fileName;
+export const saveMedia = async (fileId: string, type: "image" | "video"): Promise<string> => {
+  // Just store the Telegram file ID
+  return fileId;
 };
 
-export const deleteMedia = async (fileName: string): Promise<void> => {
-  const filePath = path.join(process.env.IMAGES_PATH || 'src/data/images', fileName);
-  if (fs.existsSync(filePath)) {
-    await fs.promises.unlink(filePath);
-  }
+export const deleteMedia = async (fileId: string): Promise<void> => {
+  // No need to delete anything from Telegram
+  return;
 };
 
 // Message formatting
 export const formatMenuItem = (item: MenuItem): string => {
-  const status = item.isAvailable ? '✅ Available' : '❌ Sold Out';
+  const status = item.isAvailable ? "✅ Available" : "❌ Sold Out";
   const quantities = item.quantities
     .map((q, i) => `${i + 1}. ${q.amount} ($${q.price})`)
-    .join('\n');
+    .join("\n");
 
   return `
-🏷 *${item.name}*
-${item.description ? `📝 ${item.description}\n` : ''}
+🔥 *${item.name}* 🔥
+${item.description ? `📝 ${item.description}\n` : ""}
 📊 *Quantities Available:*
 ${quantities}
 
 ${status}
-${item.videoUrl ? '🎥 Video preview available' : ''}
+${item.videoUrl ? "🎥 Video preview available" : ""}
 `;
 };
 
@@ -50,12 +39,12 @@ export const formatOrder = (items: OrderItem[]): string => {
           item.selectedQuantity.price * item.quantity
         }`
     )
-    .join('\n');
+    .join("\n");
 
   const total = calculateTotal(items);
 
   return `
-🛍 *Order Summary*
+🛒 *Order Summary* 🛒
 ${itemsList}
 
 💰 *Total: $${total}*
@@ -63,23 +52,21 @@ ${itemsList}
 };
 
 export const formatOrderStatus = (status: string): string => {
-  const statusEmoji = {
-    pending: '⏳',
-    confirmed: '✅',
-    'in-transit': '🚗',
-    delivered: '🎉',
-    cancelled: '❌',
-  }[status] || '❓';
+  const statusEmoji =
+    {
+      pending: "⏳",
+      confirmed: "✅",
+      "in-transit": "🚗",
+      delivered: "🎉",
+      cancelled: "❌",
+    }[status] || "❓";
 
-  return `${statusEmoji} Order ${status.toUpperCase()}`;
+  return `${statusEmoji} Order ${status.toUpperCase()} ${statusEmoji}`;
 };
 
 // Calculations
 export const calculateTotal = (items: OrderItem[]): number => {
-  return items.reduce(
-    (total, item) => total + item.selectedQuantity.price * item.quantity,
-    0
-  );
+  return items.reduce((total, item) => total + item.selectedQuantity.price * item.quantity, 0);
 };
 
 // Keyboard helpers
@@ -87,10 +74,7 @@ export const createQuantityKeyboard = (quantities: Quantity[]): string[][] => {
   return quantities.map((q, i) => [`${i + 1}. ${q.amount} ($${q.price})`]);
 };
 
-export const parseQuantitySelection = (
-  text: string,
-  quantities: Quantity[]
-): Quantity | null => {
+export const parseQuantitySelection = (text: string, quantities: Quantity[]): Quantity | null => {
   const match = text.match(/^(\d+)\./);
   if (match) {
     const index = parseInt(match[1]) - 1;
@@ -101,12 +85,12 @@ export const parseQuantitySelection = (
 
 // Validation
 export const isValidImageFile = (mimetype: string): boolean => {
-  const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+  const validTypes = ["image/jpeg", "image/png", "image/gif"];
   return validTypes.includes(mimetype);
 };
 
 export const isValidVideoFile = (mimetype: string): boolean => {
-  const validTypes = ['video/mp4', 'video/quicktime'];
+  const validTypes = ["video/mp4", "video/quicktime"];
   return validTypes.includes(mimetype);
 };
 

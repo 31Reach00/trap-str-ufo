@@ -1,28 +1,10 @@
-# Dependencies
+# Compiled JavaScript files
+lib/**/*.js
+lib/**/*.js.map
+
+# TypeScript v1 declaration files
+typings/
+
+# Node.js dependency directory
 node_modules/
-npm-debug.log
-yarn-debug.log
-yarn-error.log
-
-# Environment
-.env
-.env.local
-.env.*.local
-
-# Build output
-dist/
-build/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Application specific
-src/data/images/*
-!src/data/images/.gitkeep
+*.local
