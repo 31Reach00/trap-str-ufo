@@ -336,14 +336,11 @@ bot.action(/^add_(\w+)$/, (ctx) => {
 
   ctx.answerCbQuery("Choose quantity:");
 
-  // Add a meme option for quantity 10
-  const keyboard = item.quantities.map((q) => [`${q.amount} ($${q.price})`]);
+  // Create keyboard with meme option first, then regular quantities
+  const regularOptions = item.quantities.map((q) => [`${q.amount} ($${q.price})`]);
   
-  // Add meme option for quantity 10 if it doesn't exist
-  const has10Option = item.quantities.some(q => q.amount === "10" || q.amount === "10g");
-  if (!has10Option) {
-    keyboard.push(["🔥 Meme Lord Special (10) ($100)"]);
-  }
+  // Create keyboard with meme option first
+  const keyboard = [["🔥 Meme (10) ($10)"], ...regularOptions];
 
   ctx.reply(`Select quantity for ${item.name}:`, {
     reply_markup: {
@@ -368,19 +365,19 @@ bot.hears(/^.+\s\(\$\d+\)$/, (ctx) => {
   if (!carts[userId]) carts[userId] = [];
 
   // Check for meme option
-  if (amount.includes("Meme Lord Special")) {
+  if (amount.includes("Meme")) {
     // Find the last item shown in the menu
     const lastItemShown = menu.find(i => i.isAvailable);
     if (lastItemShown) {
       carts[userId].push({
         itemId: lastItemShown.id,
         itemName: lastItemShown.name,
-        amount: "10",
-        price: 100,
+        amount: "1g Meme",
+        price: 10,
       });
       
       ctx.reply(
-        `🔥🔥🔥 MEME LORD SPECIAL ADDED! 🔥🔥🔥\n\nAdded 10 of ${lastItemShown.name} to cart!\n\nUse /cart to view your cart or /menu to continue shopping.`,
+        `🔥🔥🔥 MEME SPECIAL ADDED! 🔥🔥🔥\n\nAdded 1g Meme of ${lastItemShown.name} to cart!\n\nUse /cart to view your cart or /menu to continue shopping.`,
         {
           reply_markup: {
             keyboard: [
